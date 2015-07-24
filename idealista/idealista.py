@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 import string
 import csv
 
-
 print "Menu de busqueda de viviendas en idealista:"
 print "-----------------------------------------"
 opcion = 0
@@ -16,8 +15,6 @@ while opcion == 0:
         accion = "alquiler-viviendas"
     elif opcion == 2:
         accion = "venta-viviendas"
-
-
 
 print "introduce la direccion a buscar: "
 entrada = raw_input()
@@ -34,7 +31,7 @@ try:
     page = urllib2.urlopen(req)
     soup = BeautifulSoup(page)
 except urllib2.HTTPError:
-    print "la busqueda no se ha posido realizar"
+    print "la busqueda no se ha podido realizar"
     exit()
 
 llista_items = soup.findAll("div", { "class" : "item-info-container" })
@@ -65,7 +62,6 @@ for item in llista_items:
 
 print "FINAL"
 
-#raw_input()
 
 
 
