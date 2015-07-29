@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import string
 import csv
 
+
 print "Menu de busqueda de viviendas en idealista:"
 print "-----------------------------------------"
 opcion = 0
@@ -31,12 +32,13 @@ try:
     page = urllib2.urlopen(req)
     soup = BeautifulSoup(page)
 except urllib2.HTTPError:
-    print "la busqueda no se ha podido realizar"
+    print "la busqueda no se ha posido realizar"
     exit()
 
 llista_items = soup.findAll("div", { "class" : "item-info-container" })
 
-c = csv.writer(open("IDEALISTA.csv", "wb"),delimiter="\t")
+f = open("IDEALISTA.csv", "w")
+c = csv.writer(f,delimiter="\t")
 c.writerow(["Nombre del piso\t","Enlace\t","Precio\t","Habitaciones\t","M2\t","Planta\t","Descripcion\t","Telefono\t"])
 
 for item in llista_items:
@@ -60,8 +62,10 @@ for item in llista_items:
     except Exception,e:
         print "-"
 
+f.close()
 print "FINAL"
 
+#raw_input()
 
 
 

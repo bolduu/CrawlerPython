@@ -25,7 +25,8 @@ except urllib2.HTTPError:
     print "la busqueda no se ha podido realizar"
     exit()
 
-c = csv.writer(open("HABITACLIA.csv", "wb"),delimiter="\t")
+f = open("HABITACLIA.csv", "w")
+c = csv.writer(f,delimiter="\t")
 c.writerow(["Nombre del piso\t","Enlace\t","Precio\t","Parametros\t","Descripcion\t"])
 
 llista_items = soup.findAll("li", { "itemtype" : "http://schema.org/Product" })
@@ -57,7 +58,8 @@ for item in llista_items:
         x5 = (descripcion.contents[0] + "\t")
 
     c.writerow([x1.encode("utf-8"),x2.encode("utf-8"),x3.encode("utf-8"),x4.encode("utf-8"),x5.encode("utf-8")])
-
+    
+f.close()
 print "FINAL"
 
     
