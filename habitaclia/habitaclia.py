@@ -1,13 +1,9 @@
-import urllib, urllib2 
+import urllib, urllib2, string, csv
 from bs4 import BeautifulSoup
-import string
-import csv
-
 
 print "Menu de busqueda de viviendas en HABITACLIA:"
 print "-----------------------------------------"
-
-print "introduce la direccion a buscar: "
+print "Introduce la direccion a buscar: "
 entrada = raw_input()
 palabras = entrada.split(" ")
 direccion = ""
@@ -22,7 +18,7 @@ try:
     page = urllib2.urlopen(req)
     soup = BeautifulSoup(page)
 except urllib2.HTTPError:
-    print "la busqueda no se ha podido realizar"
+    print "La busqueda no se ha podido realizar"
     exit()
 
 f = open("HABITACLIA.csv", "w")
