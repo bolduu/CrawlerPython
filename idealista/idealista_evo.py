@@ -1,5 +1,6 @@
 import urllib, urllib2, string, csv
 from bs4 import BeautifulSoup
+import time
 
 #Se crea una lista con todas las direcciones mediante un CP
 def direcciones_codigoPostal():
@@ -31,7 +32,7 @@ def direcciones_codigoPostal():
         for fila in filas:
             direcciones.append("calle " + fila.contents[0].contents[0] + "," + poblacion)
 
-    return direcciones
+    return direcciones,opcion
 
 #Se conecta a la pagina web general de pisos 
 def conexion_listaPisos(item):
@@ -93,7 +94,7 @@ def tratarDireccion(soup2):
     barrio = datos_barrio[0].contents[0]
     ciudad = datos_barrio[len(datos_barrio)-1].contents[0]
     
-    return tipo_via,calle,numero,barrio,ciudad
+    return tipo_via,calle,numero,barrio,ciudad,calle_piso
 
 #Se obtiene la referencia del piso
 def referenciaPiso(soup2):
@@ -101,22 +102,52 @@ def referenciaPiso(soup2):
     anuncio = temp.find("h3").contents[0].split(" ")
     referencia_piso = anuncio[len(anuncio)-1]
     return referencia_piso
-    
+
+#Se obtiene el tipo de vivienda
+def tipoPiso(titulo):
+    if titulo[:6]=="Chalet":
+        tipo = "Chalet"
+    elif titulo[:5]=="Atico":
+        tipo = "Atico"
+    elif titulo[:4]=="Casa":
+        tipo = "Casa"
+    elif titulo[:6]=="Duplex":
+        tipo = "Duplex"
+    else:
+        tipo = "Piso"
+        
+    return tipo
+
+#Se obtiene la descripcion del piso
+def descripcion(soup2):
+    temp = soup2.find("div", { "data-lang" : "es" })
+    descripcion = temp.contents[0]
+    return descripcion
+
+#Se obtiene si la vivienda es de obra nueva o de segunda mano
+def compruebaPiso(soup2):
+    if "Obra nueva" in soup2:
+        estado = "Obra nueva"
+    else:
+        estado = "Segunda mano"
+    return estado
+
+
 def precio_piso(soup2):
     temp = soup2.find("section", { "id" : "details" })
 
-    print temp
+    #print temp
 
 ####################################  INICIO PROGRAMA  ######################################
 
 #Se cogen todas las direcciones
-lista_direcciones = direcciones_codigoPostal()
+lista_direcciones,cp = direcciones_codigoPostal()
 
 #for direccion in lista_direcciones:
 
 #Se conecta a la pagina web general de pisos
-soup = conexion_listaPisos(lista_direcciones[1])
-
+soup = conexion_listaPisos(lista_direcciones[2])
+#print lista_direcciones[1]
 llista_items = soup.findAll("div", { "class" : "item-info-container" })
 
 for item in llista_items:
@@ -127,6 +158,8 @@ for item in llista_items:
     enlace = "http://www.idealista.com" + link.get('href') + "\t"
     #print enlace
 
+    tipo_piso = tipoPiso(titulo)
+    #print tipo_piso
     soup2 = conexionPiso(enlace)
 
     telefono = soup2.find("p", { "class" : "txt-big txt-bold _browserPhone" }).contents[0]
@@ -139,12 +172,36 @@ for item in llista_items:
     #print vendedor
     #print referencia_vendedor
     
-    tipo_via,partes_direccion,numero,barrio,ciudad = tratarDireccion(soup2)
-
+    tipo_via,partes_direccion,numero,barrio,ciudad,calle_piso = tratarDireccion(soup2)
+    
     referencia_piso = referenciaPiso(soup2)
     #print referencia_piso
 
     precio_piso(soup2)
+    preu_mes = item.find("span", { "class" : "item-price" }).contents[0]
+    #print preu_mes
+    #descripcion = descripcion(soup2)
+
+    fecha_carga = time.strftime("%d/%m/%Y")
+
+    nuevo_usado = compruebaPiso(soup2) 
+
+    ####################### PRINTS ##################################
+    print "-----------------------------------------------------"
+    print "Alquiler"
+    print "Idealista"
+    print "fecha carga: " + fecha_carga
     
+    print "Telefono: " + telefono
+    print "tipo de vivienda: " + tipo_piso
+    print "Nuevo/Usado: " + nuevo_usado
+    print "Ciudad: " + ciudad
+    print "Codigo Postal: " + cp
+    print "Direccion completa: " + calle_piso
+    print "Tivo Via: " + tipo_via
+    print "Calle: " + partes_direccion
+    print "Numero: " + numero
+    print "Barrio:" + barrio
+    print "Referencia Piso: " + referencia_piso
     
 print "------------------------FINAL------------------------"
