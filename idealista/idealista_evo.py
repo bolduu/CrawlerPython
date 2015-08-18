@@ -1,6 +1,5 @@
-import urllib, urllib2, string, csv
+import urllib, urllib2, string, csv, time
 from bs4 import BeautifulSoup
-import time
 
 #Se crea una lista con todas las direcciones mediante un CP
 def direcciones_codigoPostal():
@@ -43,14 +42,13 @@ def direcciones_codigoPostal():
 def conexion_listaPisos(item):
     flag = True
     soup=""
-    item.encode("ISO-8859-1")
+    item.encode("utf-8")
     palabras = item.split(" ")
     direccion = ""
     for palabra in palabras:
         direccion = direccion + "_" + palabra
 
     url = "http://www.idealista.com/buscar/alquiler-viviendas/" + direccion[1:] + "/"
-    print url
     try:
         header = {'User-Agent': 'Mozilla/5.0'}
         req = urllib2.Request(url,headers=header)
@@ -64,7 +62,7 @@ def conexion_listaPisos(item):
 
 #Realiza la conexion con la pagina individual del piso
 def conexionPiso(enlace):
-    flag = True
+    flag2 = True
     try:
         header2 = {'User-Agent': 'Mozilla/5.0'}
         req2 = urllib2.Request(enlace,headers=header2)
@@ -72,10 +70,10 @@ def conexionPiso(enlace):
         soup2 = BeautifulSoup(page2.read())
     except:
         print "La busqueda no se ha podido realizar"
-        flag = False
+        flag2 = False
         soup2 = ""
         
-    return soup2,flag
+    return soup2,flag2
 
 #Se trata la direccion del piso
 def tratarDireccion(soup2):
@@ -107,11 +105,14 @@ def tratarDireccion(soup2):
         for trozo in calle_piso[1:]:
             calle += trozo + " "
         numero = "S/N"
-    
-    datos_barrio = datos_direccion.findAll("li")
-    barrio = datos_barrio[0].contents[0]
-    ciudad = datos_barrio[len(datos_barrio)-1].contents[0]
-    
+    try:
+        datos_barrio = datos_direccion.findAll("li")
+        barrio = datos_barrio[0].contents[0]
+        ciudad = datos_barrio[len(datos_barrio)-1].contents[0]
+    except:
+        barrio=""
+        ciudad=""
+        
     return tipo_via,calle,numero,barrio,ciudad,calle_piso2
 
 #Se obtiene la referencia del piso
@@ -159,6 +160,10 @@ def precio_piso(soup2):
         hab = ""
     try:
         planta = items[6].contents[0].contents[0]
+        if len(planta) == 2:
+            planta = planta [0]
+        elif len(planta) == 3:
+            planta = planta [0:1]
     except:
         planta = ""
     
@@ -174,12 +179,11 @@ def getDescripcion(item):
 
 #Calculo del precio del m2
 def calculoPrecioM2(precio_mes,m2):
-    if "." in precio_mes:
-        precio = float(precio_mes) * 1000
-    else:
-        precio = float(precio_mes)
-    M2 = float(m2)
-    
+
+    temp = precio_mes.replace(".", "")
+    temp2 = m2.replace(".", "")
+    precio = float(temp)
+    M2 = float(temp2)
     return str(round(precio/M2,2))
 
 #Se obtiene el calculo de la coordenadas de la vivienda
@@ -191,6 +195,7 @@ def calculCoordenades(soup2):
     y = prova[y_temp+11 : y_temp+18]
     return x,y
 
+#Se obtiene la fecha de la ultima actualizacion del anuncio
 def compruebaActualizado(soup2):
     try:    
         actualizado = soup2.find("section", { "id" : "stats"}).find("h2").contents[0]
@@ -199,6 +204,7 @@ def compruebaActualizado(soup2):
         
     return actualizado
 
+#Se obtiene el vendedor y su referencia
 def buscaVendedor(soup2):
     try:
         vendedor = soup2.find("div", { "class" : "advertiser-data txt-soft" })
@@ -216,10 +222,13 @@ def buscaVendedor(soup2):
 #Se cogen todas las direcciones
 lista_direcciones,cp = direcciones_codigoPostal()
 #se crea el fichero.csv
+
+print len(lista_direcciones)
+
 f = open("IDEALISTA_MASSIU.csv", "wb")
 c = csv.writer(f,delimiter="\t")
 c.writerow(["Tipo\t","Cartera\t","Fecha Carga\t","Referencia Piso\t",
-            "Telefono\t","Tipo\t","Nuevo/Usado\t","Ciudad\t","Codigo Postal\t",
+            "Telefono\t","Tipo\t","Nuevo/Usado\t","Provincia\t","Codigo Postal\t",
             "Direccion\t","Via\t","Calle\t","Numero\t","Barrio\t",
             "Precio euros/mes\t","Planta\t","Habitaciones\t","m2\t",
             "Euro/m2\t","Enlace\t","Latitud\t","Longitud\t","Vendedor\t",
@@ -238,8 +247,8 @@ for direccion in lista_direcciones:
             titulo = (link.get('title')).encode("utf-8") + "\t"
             enlace = "http://www.idealista.com" + link.get('href') + "\t"
             tipo_piso = tipoPiso(titulo)
-            soup2,flag = conexionPiso(enlace)
-            if flag == True:
+            soup2,flag2 = conexionPiso(enlace)
+            if flag2 == True:
                 try:
                     telefono = soup2.find("p", { "class" : "txt-big txt-bold _browserPhone" }).contents[0]
                 except:
@@ -254,49 +263,51 @@ for direccion in lista_direcciones:
                 actualizado = compruebaActualizado(soup2)
                 descripcion = getDescripcion(item)
                 precioM2 = calculoPrecioM2(precio_mes,m2)
-
                 x,y = calculCoordenades(soup2)
 
-                
+                precioM2 = precioM2.replace(".", ",")
+                m2 = m2.replace(".", "")
+                precio_mes = precio_mes.replace(".", "")
+
                 ####################### PRINTS ##################################
                 print "-->" + direccion
-                print "Alquiler"
-                print "Idealista"
-                print "fecha carga: " + fecha_carga
+                #print "Alquiler"
+                #print "Idealista"
+                #print "fecha carga: " + fecha_carga
                 print "Referencia Piso: " + referencia_piso
-                print "Telefono: " + telefono
-                print "Precio Mes: " + precio_mes
-                print "Vendedor: " + vendedor
-                print "Referencia vendedor" + referencia_vendedor
-                print "tipo de vivienda: " + tipo_piso
-                print "Nuevo/Usado: " + nuevo_usado
-                print "Ciudad: " + ciudad
-                print "Codigo Postal: " + cp
-                print "Direccion completa: " + calle_piso
-                print "Tivo Via: " + tipo_via
-                print "Calle: " + partes_direccion
-                print "Numero: " + numero
-                print "Barrio:" + barrio
-                print "Precio/Mes: " + precio_mes
-                print "m2: " + m2
-                print "Habitaciones: " + hab
-                print "Planta: " + planta
-                print "Precio eur/m2: " + precioM2
-                print "Fecha Actualizacion: " + actualizado
-                print "Descripcion: " + descripcion
-                print "Enlace: " + enlace
-                print "X/Y: " + x + "," + y
-                
+                #print "Telefono: " + telefono
+                #print "Precio Mes: " + precio_mes
+                #print "Vendedor: " + vendedor
+                #print "Referencia vendedor" + referencia_vendedor
+                #print "tipo de vivienda: " + tipo_piso
+                #print "Nuevo/Usado: " + nuevo_usado
+                #print "Ciudad: " + ciudad
+                #print "Codigo Postal: " + cp
+                #print "Direccion completa: " + calle_piso
+                #print "Tivo Via: " + tipo_via
+                #print "Calle: " + partes_direccion
+                #print "Numero: " + numero
+                #print "Barrio:" + barrio
+                #print "Precio/Mes: " + precio_mes
+                #print "m2: " + m2
+                #print "Habitaciones: " + hab
+                #print "Planta: " + planta
+                #print "Precio eur/m2: " + precioM2
+                #print "Fecha Actualizacion: " + actualizado
+                #print "Descripcion: " + descripcion
+                #print "Enlace: " + enlace
+                #print "X/Y: " + x + "," + y
                 print "------------------------FINAL------------------------"
-                c.writerow(["Alquiler\t","IDEALISTA\t",fecha_carga + "\t",referencia_piso+"\t",
-                            telefono+"\t",tipo_piso+"\t",nuevo_usado+"\t", ciudad.encode("ISO-8859-1")+"\t",
-                            cp+"\t",calle_piso.encode("ISO-8859-1")+"\t",tipo_via+"\t",
-                            partes_direccion.encode("ISO-8859-1")+"\t", numero+"\t", barrio+"\t",
-                            precio_mes+"\t", planta.encode("ISO-8859-1")+"\t",hab+"\t", m2+"\t",
-                            precioM2+"\t", enlace+"\t",x+"\t",y+"\t",vendedor.encode("ISO-8859-1")+"\t",
-                            referencia_vendedor+"\t",actualizado+"\t"])
-
-                
-            else:
-                print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                try:
+                    c.writerow(["Alquiler \t","IDEALISTA \t",fecha_carga + " \t",referencia_piso+" \t",
+                                telefono+" \t",tipo_piso+" \t",nuevo_usado+" \t",ciudad.encode("ISO-8859-1")+" \t",
+                                cp+" \t",calle_piso.encode("ISO-8859-1")+" \t",tipo_via+" \t",
+                                partes_direccion.encode("ISO-8859-1")+" \t",numero+" \t",barrio+" \t",
+                                precio_mes+" \t",planta.encode("ISO-8859-1")+" \t",hab+"\t",m2+" \t",
+                                precioM2+" \t",enlace+" \t",x+"\t",y+" \t",vendedor.encode("ISO-8859-1")+" \t",
+                                referencia_vendedor.encode("ISO-8859-1")+" \t",actualizado.encode("ISO-8859-1")+" \t"])
+                except:
+                    pass
+    else:
+        print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 f.close()
